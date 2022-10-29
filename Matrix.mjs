@@ -91,8 +91,8 @@ export function perspective(d) {
 
 export function viewport(x, y, w, h) {
     return [
-        w/2, 0, 0, w/2,
-        0, -h/2, 0, h/2,
+        w/2, 0, 0, x + w/2,
+        0, -h/2, 0, y + h/2,
         0, 0, 1, 0,
         0, 0, 0, 1
     ]
