@@ -30,7 +30,6 @@ function setCameraAndModel(scene) {
 
     model.vertices = [...scene.vertices];
     model.indices = [...scene.indices];
-
 }
 
 let keys = []
@@ -83,7 +82,6 @@ document.addEventListener('keypress', (event) => {
 init()
 
 function init() {
-
     // const scene = {
     //     vertices: [
     //         0, 0, 0,
@@ -1596,7 +1594,7 @@ function init() {
         },
         model: {
             translation: [0, 0, 0],
-            rotation: [0, 0, 0],
+            rotation: [0.2, Math.PI - 0.4, 0],
             scale: [1, 1, 1]
         }
     }
