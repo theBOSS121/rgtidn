@@ -1,3 +1,58 @@
+export function subVectors(a, b) {
+    let c = [];
+    for(let i = 0; i < a.length; i++) {
+        c.push(a[i] - b[i]);
+    }
+    return c;
+}
+export function addVectors(a, b) {
+    let c = [];
+    for(let i = 0; i < a.length; i++) {
+        c.push(a[i] + b[i]);
+    }
+    return c;
+}
+export function scalarProduct(a, b) {
+    let c = [];
+    for(let i = 0; i < b.length; i++) {
+        c.push(a * b[i]);
+    }
+    return c;
+}
+
+export function normalizeVec(a) {
+    let len = 0;
+    let v = [];
+    for(let i = 0; i < 3; i++) {
+        len += a[i] * a[i];
+    }
+    len = Math.sqrt(len);
+
+    for(let i = 0; i < 3; i++) {
+        v.push(a[i]/len);
+    }
+    return v;
+}
+
+export function reflect(a, n) {
+    let adotn = dot(a, n);
+    let changedN = [];
+    for(let i = 0; i < n.length; i++) {
+        changedN.push(n[i] * adotn);
+    }
+    let diff = subVectors(changedN, a)
+    let reflected = addVectors(a, addVectors(diff, diff));
+    return reflected;
+}
+
+export function dot(a, b) {
+    let dot = 0;
+    for(let i = 0; i < a.length; i++) {
+        dot += a[i] * b[i];
+    }
+    return dot;
+}
+
 export function multiply(a, b) {
     let mat = []
     let number
