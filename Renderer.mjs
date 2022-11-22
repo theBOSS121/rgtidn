@@ -9,6 +9,8 @@ export class Renderer {
     render(camera, model) {
         const { width, height } = this.context.canvas;
         this.context.clearRect(0, 0, width, height);
+        this.context.fillStyle = "#000000";
+        this.context.fillRect(0, 0, width, height);
         
         let vertices = []
         let zOfVertices = []
@@ -18,28 +20,37 @@ export class Renderer {
         let perspectiveViewport = Matrix.multiply(Matrix.perspective(camera.perspective), Matrix.identity())
         perspectiveViewport = Matrix.multiply(Matrix.viewport(0, 0, width, height), perspectiveViewport)
         
-        let lightPosition = Matrix.transform(camera.inverseTransform, [model.lights[0].position[0], model.lights[0].position[1], model.lights[0].position[2], 1])
-        lightPosition.pop();
+        let lightPositions = [];
+        for(let i = 0; i < model.lights.length; i++) {
+            let lp = Matrix.transform(camera.inverseTransform, [model.lights[i].position[0], model.lights[i].position[1], model.lights[i].position[2], 1]);
+            lp.pop();
+            lightPositions.push(lp);
+        }
         // console.log(lightPosition)
+        let finalColor = [];
+        const gamma = 2.2;
         for(let i = 0; i < model.vertices.length / 3; i++) { // loop through every vertex
             // transformation from local to world coordinates, from world to view coordinates
             let vertex = Matrix.transform(modelView, [model.vertices[i * 3], model.vertices[i * 3 + 1], model.vertices[i * 3 + 2], 1])
             let normal = Matrix.transform(modelView, [model.normals[i * 3], model.normals[i * 3 + 1], model.normals[i * 3 + 2], 0])
             normal.pop(); // 4d -> 3d
-
             // vec3 surfacePosition = vPosition;        
             let N = Matrix.normalizeVec(normal);
-            let L = Matrix.normalizeVec(Matrix.subVectors(lightPosition, vertex));
             let E = Matrix.normalizeVec(Matrix.subVectors([0,0,0], vertex));
-            let R = Matrix.normalizeVec(Matrix.reflect(L, N));
-            let lambert = Math.max(0.0, Matrix.dot(L, N)); //* uMaterial.diffuse;
-            let phong = Math.pow(Math.max(0.0, Matrix.dot(E, R)), model.material.shininess); //* uMaterial.specular;
-            
-            let diffuseLight = Matrix.scalarProduct(lambert, model.lights[0].color);
-            let specularLight = Matrix.scalarProduct(phong, model.lights[0].color);        
-            const gamma = 2.2;
-            let albedo = [Math.pow(model.material.color[0], gamma), Math.pow(model.material.color[1], gamma), Math.pow(model.material.color[2], gamma)];
-            let finalColor = Matrix.addVectors([diffuseLight[0] * albedo[0], diffuseLight[1] * albedo[1], diffuseLight[2] * albedo[2]], specularLight);
+            for(let j = 0; j < lightPositions.length; j++) {
+                let L = Matrix.normalizeVec(Matrix.subVectors(lightPositions[j], vertex));
+                let R = Matrix.normalizeVec(Matrix.reflect(L, N));
+                let lambert = Math.max(0.0, Matrix.dot(L, N)); //* uMaterial.diffuse;
+                let phong = Math.pow(Math.max(0.0, Matrix.dot(E, R)), model.material.shininess); //* uMaterial.specular;
+                let diffuseLight = Matrix.scalarProduct(lambert, model.lights[j].color);
+                let specularLight = Matrix.scalarProduct(phong, model.lights[j].color);
+                let albedo = [Math.pow(model.material.color[0], gamma), Math.pow(model.material.color[1], gamma), Math.pow(model.material.color[2], gamma)];
+                if(j == 0) {
+                    finalColor = Matrix.addVectors([diffuseLight[0] * albedo[0], diffuseLight[1] * albedo[1], diffuseLight[2] * albedo[2]], specularLight);
+                }else {
+                    finalColor = Matrix.addVectors(finalColor, Matrix.addVectors([diffuseLight[0] * albedo[0], diffuseLight[1] * albedo[1], diffuseLight[2] * albedo[2]], specularLight));
+                }
+            }
             finalColor = [Math.pow(finalColor[0], 1.0 / gamma), Math.pow(finalColor[1], 1.0 / gamma), Math.pow(finalColor[2], 1.0 / gamma)];
             
             // let finalColor = Matrix.addVectors([diffuseLight[0] * model.material.color[0], diffuseLight[1] * model.material.color[1], diffuseLight[2] * model.material.color[2]], specularLight);
@@ -70,13 +81,10 @@ export class Renderer {
             let z2 = zOfVertices[model.indices[i * 3 + 2]]
             let colorStr = this.getAvgColor(v0[5], v1[5], v2[5]);
             triangles.push({ v: [[v0[0], v0[1]], [v1[0], v1[1]], [v2[0], v2[1]]], color: colorStr, z: (z0+z1+z2)/3});
-            // this.drawTriangleGradientLines([v0[0], v0[1], v0[4]], [v1[0], v1[1], v1[4]], [v2[0], v2[1], v2[4]])
+            this.drawTriangleGradientLines([v0[0], v0[1], v0[4]], [v1[0], v1[1], v1[4]], [v2[0], v2[1], v2[4]])
         }
-        triangles.sort((a,b) => {
-            return b.z-a.z
-        })
+        triangles.sort((a,b) => b.z-a.z)
         for(let i = 0; i < triangles.length; i++) {
-            // console.log(triangles[i])
             this.drawTriangle(...triangles[i].v, triangles[i].color)
         }
     }
@@ -97,8 +105,9 @@ export class Renderer {
     getColor(color) {
         let c = 0;
         for(let i = 0; i < 3; i++) {
-            if(color[i] < 0) color[i] = 0;
-            if(color[i] > 1) color[i] = 1;
+            color[i] = color[i] / (color[i]+1)
+            // if(color[i] < 0) color[i] = 0;
+            // if(color[i] > 1) color[i] = 1;
             color[i] = color[i] * 255;
         }
         let r = Math.floor(color[0]);
